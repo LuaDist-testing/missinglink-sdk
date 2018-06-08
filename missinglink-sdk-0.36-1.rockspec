@@ -1,15 +1,15 @@
 -- This file was automatically generated for the LuaDist project.
 
 package = "missinglink-sdk"
-version = "0.35-1"
+version = "0.36-1"
 -- LuaDist source
 source = {
-  tag = "0.35-1",
+  tag = "0.36-1",
   url = "git://github.com/LuaDist-testing/missinglink-sdk.git"
 }
 -- Original source
 -- source = {
---    url = "https://storage.googleapis.com/missinglinkai/luarocks/missinglink-sdk-0.35.tar.gz"
+--    url = "https://storage.googleapis.com/missinglinkai/luarocks/missinglink-sdk-0.36.tar.gz"
 -- }
 description = {
    summary = "SDK for streaming realtime metrics to https://missinglink.ai",
@@ -22,7 +22,7 @@ dependencies = {
    "httpclient >= 0.1"
 }
 build = {
-   type = "builtin",
+   type = "none",
    --modules = {
    --  missinglink = "missinglink/init.lua",
    --  ["missinglink.callback.base_callback"] = "missinglink/callback/base_callback.lua",
