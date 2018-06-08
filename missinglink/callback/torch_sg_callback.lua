@@ -21,7 +21,10 @@ function StochasticGradientCallback:__init(trainer, host)
 end
 
 function StochasticGradientCallback:train(trainer, dataset)
-    self:trainBegin(tostring(trainer.module))
+    self:trainBegin(tostring(trainer.module), {
+        ['framework'] = 'torch',
+        ['nb_epoch'] = trainer.maxIteration
+    })
     if self.iteration == 1 then
         self.currentBatch = 1
         self.currentEpoch = 1

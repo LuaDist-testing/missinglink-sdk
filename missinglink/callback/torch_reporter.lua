@@ -7,11 +7,15 @@ else
 end
 local Reporter = torch.class('missinglink.Reporter', 'missinglink.BaseCallback')
 
-function Reporter:__init(model, host)
+function Reporter:__init(model, total_epochs, host)
     baseInit(self, host)
     self.currentBatch = 0
     self.currentEpoch = 0
-    self:trainBegin(tostring(model))
+    local params = {['framework'] = 'torch' }
+    if total_epochs then
+        params['nb_epoch'] = total_epochs
+    end
+    self:trainBegin(tostring(model), params)
     self:epochBegin(self.currentEpoch, {})
 end
 

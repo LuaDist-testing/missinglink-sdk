@@ -65,8 +65,9 @@ end
 function TorchnetCallback:onStart(state)
     if state.training then
     self:trainBegin(tostring(state.network), {
+        ['framework'] = 'torchnet',
+        ['nb_epoch'] = state.maxepoch,
         criterion = tostring(state.criterion),
-        maxepoch = state.maxepoch,
     })
     end
 end

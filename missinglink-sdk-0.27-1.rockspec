@@ -1,18 +1,18 @@
 -- This file was automatically generated for the LuaDist project.
 
 package = "missinglink-sdk"
-version = "0.17-1"
+version = "0.27-1"
 -- LuaDist source
 source = {
-  tag = "0.17-1",
+  tag = "0.27-1",
   url = "git://github.com/LuaDist-testing/missinglink-sdk.git"
 }
 -- Original source
 -- source = {
---    url = "https://storage.googleapis.com/missinglink-public/missinglink-sdk-0.17.tar.gz"
+--    url = "https://storage.googleapis.com/missinglinkai/luarocks/missinglink-sdk-0.27.tar.gz"
 -- }
 description = {
-   summary = "Callback for streaming realtime metrics to https://missinglink.ai",
+   summary = "SDK for streaming realtime metrics to https://missinglink.ai",
    homepage = "https://missinglink.ai",
    license = "MIT/X11"
 }
@@ -33,9 +33,9 @@ build = {
       ["missinglink.callback.torch_sg_callback"] = "missinglink/callback/torch_sg_callback.lua",
       ["missinglink.callback.torchnet_callback"] = "missinglink/callback/torchnet_callback.lua",
    },
-   install = { 
+   install = {
       lua = {
-         ["missinglink.cacert"] = "missinglink/cacert.pem" 
+         ["missinglink.cacert"] = "missinglink/cacert.pem"
       }
    }
 }
