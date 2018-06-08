@@ -10,54 +10,42 @@ else
     baseInit = require './base_callback'
 end
 local StochasticGradientCallback = torch.class('missinglink.StochasticGradientCallback', 'missinglink.BaseCallback')
+local setPropertiesCheck = require 'argcheck'{
+    {name='description', type='string', default=nil},
+}
 
 function StochasticGradientCallback:__init(trainer, host)
     baseInit(self, host)
-    self.currentBatch = 1
-    self.currentEpoch = 1
-    self.epochSize = 0
-
+    self.properties = {['framework'] = 'torch'}
     wrapCallbacks(trainer, self, 'train', {'hookIteration', 'hookExample'})
 end
 
+function StochasticGradientCallback:setProperties(...)
+    local description = setPropertiesCheck()
+    self.properties.description = description or self.properties.description
+end
+
 function StochasticGradientCallback:train(trainer, dataset)
-    self:trainBegin(tostring(trainer.module), {
-        ['framework'] = 'torch',
-        ['nb_epoch'] = trainer.maxIteration
-    })
-    if self.iteration == 1 then
-        self.currentBatch = 1
-        self.currentEpoch = 1
-        self:epochBegin(1, {})
-        self:batchBegin(1, 1, {})
-    end
-    self.epochSize = dataset:size()
     if trainer.maxIteration <= 0 then
         error("maxIteration is not a positive integer - endless training not allowed")
     end
+
+    self.properties.nb_epoch = trainer.maxIteration
+    self.properties.nb_sample = dataset:size()
+
+    self:trainBegin(tostring(trainer.module), self.properties)
 end
 
-function StochasticGradientCallback:hookExample(trainer, input)
-    --self:batchEnd(self.currentBatch, self.currentEpoch, {})
-    --if self.currentBatch < self.epochSize then
-    --    self.currentBatch = self.currentBatch + 1
-    --    self:batchBegin(self.currentBatch, self.currentEpoch, {})
-    --end
-end
+function StochasticGradientCallback:hookExample(trainer, input) end
 
 function StochasticGradientCallback:hookIteration(trainer, epoch, loss)
-    self.currentBatch = 1
-    self:batchEnd(1, epoch, {['loss'] = loss})
-    self:epochEnd(epoch)
+    self:epochBegin(epoch)
+    self:epochEnd(epoch, {error=loss})
 
     if trainer.maxIteration <= 0 then
         error("maxIteration is not a positive integer - endless training not allowed")
         self:trainEnd()
     elseif epoch >= trainer.maxIteration then
         self:trainEnd()
-    else
-        self.currentEpoch = self.currentEpoch + 1
-        self:epochBegin(self.currentEpoch, {})
-        self:batchBegin(1, self.currentEpoch, {})
     end
 end

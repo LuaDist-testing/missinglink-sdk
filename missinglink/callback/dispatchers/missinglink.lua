@@ -1,3 +1,4 @@
+missinglink = missinglink or {}
 local jsonEncode = require 'json.encode'.encode
 local jsonDecode = require 'json.decode'.decode
 
@@ -33,19 +34,44 @@ end
 local function getMissinglinkDispatcher(ownerId, projectToken, host)
     local host = host or "https://missinglinkai.appspot.com"
     local httpClient = newClient()
+    local deadDispatcher = false
 
-    local function postJson(endpoint, params)
-        local data = jsonEncode(params)
+    local function postJson(endpoint, json_table)
+        local data = jsonEncode(json_table)
 
         local options = {
-            ['content_type'] = 'application/json'
+            ['content_type'] = 'application/json',
+            params = {
+                ['owner_id'] = ownerId,
+                ['project_token'] = projectToken
+            }
         }
 
-        return httpClient:post(
-            host .. endpoint,
-            data,
-            options
-        )
+        local res
+        for i=1, 3 do
+            res = httpClient:post(
+                host .. endpoint,
+                data,
+                options
+            )
+            if (res.err == nil) or (res.code < 400) then
+                return res
+            end
+        end
+
+        local error_str
+        if res.status_line then
+            local _, _, e = res.status_line:match('([^ ]+) ([^ ]+) ([^\n]+)')
+            error_str = e
+            if not error_str then
+                error_str = tostring(res.code)
+            end
+        end
+        local bad_request = error_str or tostring(res.err)
+        missinglink.logger.warning('Failed to communicate with missinglink server:\n%s - %s\n' ..
+                                'This experiment will not be available or will have missing data',
+                                bad_request, res.body)
+        deadDispatcher = true
     end
 
     local function create_new_experiment()
@@ -56,31 +82,24 @@ local function getMissinglinkDispatcher(ownerId, projectToken, host)
 
         local res = postJson("/callback/step/begin", params)
 
-        if res.err or res.code >= 400 then
-            local error_str
-            if res.status_line then
-                local _, _, e = res.status_line:match('([^ ]+) ([^ ]+) ([^\n]+)')
-                error_str = e
-                if not error_str then
-                    error_str = tostring(res.code)
-                end
-            end
-            local bad_request = error_str or tostring(res.err)
-            error(string.format('HTTP Error (%s): %s', bad_request, res.body))
+        if not res == nil then
+            return jsonDecode(res.body)["token"]
+        else
+            return nil
         end
-
-        return jsonDecode(res.body)["token"]
     end
 
     local experiment_token = create_new_experiment()
 
     local function dispatch(commands)
-        local params = {
-            ['cmds'] = commands,
-            ['token'] = experiment_token,
-        }
+        if not deadDispatcher then
+            local params = {
+                ['cmds'] = commands,
+                ['token'] = experiment_token,
+            }
 
-        return postJson("/callback/step", params)
+            return postJson("/callback/step", params)
+        end
     end
 
     return dispatch

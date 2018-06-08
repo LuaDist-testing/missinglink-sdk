@@ -1,7 +1,12 @@
 if not torch then require ('torch') end
+
 local argcheck = require 'argcheck'
 
 missinglink = {}
+
+missinglink.logger =  require 'log'.new(
+            require "log.writer.stdout".new(),
+            require "log.formatter.format".new())
 
 -- Load classes
 require ('./callback/torch_sg_callback')
@@ -16,10 +21,19 @@ missinglink['wrapCallbacks'] = nil
 
 function missinglink.init(args)
     if not args.ownerID or not args.projectToken then
-        error('Expected ownerID and projectToken')
+        missinglink.logger.error('Expected ownerID and projectToken')
     end
     missinglink.ownerID = args.ownerID
     missinglink.projectToken = args.projectToken
 end
+
+missinglink.init = argcheck{
+    {name='ownerID', type='string'},
+    {name='projectToken', type='string'},
+    call = function (ownerID, projectToken)
+        missinglink.ownerID = ownerID
+        missinglink.projectToken = projectToken
+    end
+}
 
 return missinglink

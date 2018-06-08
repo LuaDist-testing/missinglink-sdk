@@ -10,6 +10,11 @@ else
     baseInit = require './base_callback'
 end
 local TorchnetCallback = torch.class('missinglink.TorchnetCallback', 'missinglink.BaseCallback')
+local setPropertiesCheck = require 'argcheck'{
+    {name='batchSize', type='number', default=nil},
+    {name='epochSize', type='number', default=nil},
+    {name='description', type='string', default=nil},
+}
 
 local function isArray(t)
     if #t == 0 then return false end
@@ -25,6 +30,7 @@ function TorchnetCallback:__init(engine, host)
     baseInit(self, host)
     self.samplesCounter = 0
     self.meters = {}
+    self.properties = {['framework'] = 'torchnet'}
 
     -- Callbacks setup
     local callbacks = {
@@ -38,6 +44,13 @@ function TorchnetCallback:__init(engine, host)
 
     -- Monkey patch
     wrapCallbacks(engine, self, 'train', callbacks, engine.hooks)
+end
+
+function TorchnetCallback:setProperties(...)
+    local batchSize, epochSize, description = setPropertiesCheck()
+    self.properties.batch_size = batchSize or self.properties.batch_size
+    self.properties.nb_sample = epochSize or self.properties.nb_sample
+    self.properties.description = description or self.properties.description
 end
 
 function TorchnetCallback:setMeters(meters)
@@ -64,11 +77,10 @@ end
 
 function TorchnetCallback:onStart(state)
     if state.training then
-    self:trainBegin(tostring(state.network), {
-        ['framework'] = 'torchnet',
-        ['nb_epoch'] = state.maxepoch,
-        criterion = tostring(state.criterion),
-    })
+    self.properties.nb_epoch = state.maxepoch
+    self.properties.criterion = tostring(state.criterion)
+
+    self:trainBegin(tostring(state.network), self.properties)
     end
 end
 
