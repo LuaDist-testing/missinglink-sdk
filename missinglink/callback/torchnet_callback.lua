@@ -11,9 +11,9 @@ else
 end
 local TorchnetCallback = torch.class('missinglink.TorchnetCallback', 'missinglink.BaseCallback')
 local setPropertiesCheck = require 'argcheck'{
-    {name='batchSize', type='number', default=nil},
-    {name='epochSize', type='number', default=nil},
-    {name='description', type='string', default=nil},
+    {name='batchSize', type='number', default=nil, opt=true},
+    {name='epochSize', type='number', default=nil, opt=true},
+    {name='description', type='string', default=nil, opt=true},
 }
 
 local function isArray(t)
@@ -21,7 +21,7 @@ local function isArray(t)
     local i = 0
     for _ in pairs(t) do
         i = i + 1
-        if t[i] == nil then return false end
+        if not t[i] then return false end
     end
     return true
 end
@@ -47,7 +47,7 @@ function TorchnetCallback:__init(engine, host)
 end
 
 function TorchnetCallback:setProperties(...)
-    local batchSize, epochSize, description = setPropertiesCheck()
+    local batchSize, epochSize, description = setPropertiesCheck(...)
     self.properties.batch_size = batchSize or self.properties.batch_size
     self.properties.nb_sample = epochSize or self.properties.nb_sample
     self.properties.description = description or self.properties.description

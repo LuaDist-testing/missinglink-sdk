@@ -2,6 +2,8 @@ missinglink = missinglink or {}
 local jsonEncode = require 'json.encode'.encode
 local jsonDecode = require 'json.decode'.decode
 
+local SAVE_LOGS = false
+
 local function newClient()
     local function script_path()
         local str = debug.getinfo(2, "S").source:sub(2)
@@ -24,25 +26,49 @@ local function newClient()
     return client
 end
 
-local function getDummyDispatcher(ownerId, projectToken, host)
-    local function dispatch(commands)
-        print(commands)
-    end
-    return dispatch
-end
-
-local function getMissinglinkDispatcher(ownerId, projectToken, host)
+local function getMissinglinkDispatcher(ownerID, projectToken, host)
     local host = host or "https://missinglinkai.appspot.com"
     local httpClient = newClient()
     local deadDispatcher = false
 
+    local logsDir
+    local counter
+    local order
+
+    if SAVE_LOGS then
+        logsDir = 'logs'
+        paths.mkdir(logsDir)
+        counter = 0
+
+        order = function(a, b)
+            if (a[1] == b[1]) and (a[1] == 'BATCH_END') then
+                return a[2]['iteration'] < b[2]['iteration']
+            end
+            return b[1] == 'BATCH_END'
+        end
+    end
+
     local function postJson(endpoint, json_table)
         local data = jsonEncode(json_table)
+
+        if SAVE_LOGS then
+            local path = paths.concat(logsDir, 'commands' .. counter .. '.json')
+            missinglink.logger.warning('Saving %d bytes to %s', #data, path)
+            local file, errorMsg = io.open(path, 'w')
+            if file then
+                file:write(data)
+                file:close()
+            else
+                missinglink.logger.error('Failed writing to file %s:\n%s', path, errorMsg)
+            end
+
+            counter = counter + 1
+        end
 
         local options = {
             ['content_type'] = 'application/json',
             params = {
-                ['owner_id'] = ownerId,
+                ['owner_id'] = ownerID,
                 ['project_token'] = projectToken
             }
         }
@@ -54,7 +80,7 @@ local function getMissinglinkDispatcher(ownerId, projectToken, host)
                 data,
                 options
             )
-            if (res.err == nil) or (res.code < 400) then
+            if not res.err and (res.code < 400) then
                 return res
             end
         end
@@ -76,13 +102,13 @@ local function getMissinglinkDispatcher(ownerId, projectToken, host)
 
     local function create_new_experiment()
         local params = {
-            ['owner_id'] = ownerId,
+            ['owner_id'] = ownerID,
             ['token'] = projectToken
         }
 
         local res = postJson("/callback/step/begin", params)
 
-        if not res == nil then
+        if res then
             return jsonDecode(res.body)["token"]
         else
             return nil
@@ -93,9 +119,13 @@ local function getMissinglinkDispatcher(ownerId, projectToken, host)
 
     local function dispatch(commands)
         if not deadDispatcher then
+            if SAVE_LOGS then
+                table.sort(commands, order)
+            end
+
             local params = {
-                ['cmds'] = commands,
                 ['token'] = experiment_token,
+                ['cmds'] = commands,
             }
 
             return postJson("/callback/step", params)

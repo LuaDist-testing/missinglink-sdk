@@ -35,6 +35,7 @@ function BaseCallback:__init(host)
     if not missinglink.ownerID or not missinglink.projectToken then
         missinglink.logger.error('Missing owner id or project token. Did you call missinglink.init()?')
     end
+    self.host = host
     self.batches_queue = {}
     self.points_candidate_indices = {}
     self.iteration = 0
@@ -46,19 +47,19 @@ function BaseCallback:__init(host)
 end
 
 function BaseCallback:newExperiment()
-    self.dispatch = getDispatch(missinglink.ownerID, missinglink.projectToken, host)
+    self.dispatch = getDispatch(missinglink.ownerID, missinglink.projectToken, self.host)
     self.batches_queue = {}
-    self.points_candidate_indices = {}
     self.iteration = 0
     self.ts_start = 0
     self.epochAddition = 0
+    self.points_candidate_indices = {}
     if SEND_EPOCH_CANDIDATES then
         self.epoch_candidate_indices = {}
     end
 end
 
 function BaseCallback:batchCommand(event, data, flush)
-    if self.dispatch == nil then
+    if not self.dispatch then
         missinglink.logger.warning('MissingLink callback cannot send data before train_begin is called.\n' ..
                 'Please advice the instruction page for proper use')
         return
@@ -70,20 +71,20 @@ function BaseCallback:batchCommand(event, data, flush)
     if event == 'BATCH_END' then
         local i
         if SEND_EPOCH_CANDIDATES and
-                not (self.epoch_candidate_indices[data['epoch_candidate']] == nil) then
+                self.epoch_candidate_indices[data['epoch_candidate']] then
             i = self.epoch_candidate_indices[data['epoch_candidate']]
-        elseif not (self.points_candidate_indices[data['points_candidate']] == nil) then
+        elseif self.points_candidate_indices[data['points_candidate']] then
             i = self.points_candidate_indices[data['points_candidate']]
         else
             i = #self.batches_queue + 1
         end
         self.batches_queue[i] = command
 
-        if SEND_EPOCH_CANDIDATES and not (data['epoch_candidate'] == nil) then
+        if SEND_EPOCH_CANDIDATES and data['epoch_candidate'] then
             self.epoch_candidate_indices[data['epoch_candidate']] = i
         end
 
-        if not (data['points_candidate'] == nil) then
+        if data['points_candidate'] then
             self.points_candidate_indices[data['points_candidate']] = i
         end
     else
@@ -100,6 +101,10 @@ function BaseCallback:batchCommand(event, data, flush)
     if queue_duration >= missinglink.DISPATCH_INTERVAl or flush then
         self.dispatch(self.batches_queue)
         self.batches_queue = {}
+        self.points_candidate_indices = {}
+        if SEND_EPOCH_CANDIDATES then
+            self.epoch_candidate_indices = {}
+        end
     end
 end
 
@@ -122,7 +127,6 @@ function BaseCallback:trainEnd(kwargs)
 end
 
 function BaseCallback:epochBegin(epoch, params, kwargs)
-    -- TODO: Make sure everyone calls epochBegin
     if epoch == 0 then
             self.epochAddition = 1
     end

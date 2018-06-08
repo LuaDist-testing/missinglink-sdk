@@ -7,10 +7,10 @@ else
 end
 local Reporter = torch.class('missinglink.Reporter', 'missinglink.BaseCallback')
 local setPropertiesCheck = require 'argcheck'{
-    {name='totalEpochs', type='number', default=nil},
-    {name='batchSize', type='number', default=nil},
-    {name='epochSize', type='number', default=nil},
-    {name='description', type='string', default=nil},
+    {name='totalEpochs', type='number', default=nil, opt=true},
+    {name='batchSize', type='number', default=nil, opt=true},
+    {name='epochSize', type='number', default=nil, opt=true},
+    {name='description', type='string', default=nil, opt=true},
 }
 
 function Reporter:__init(model, host)
@@ -24,7 +24,7 @@ function Reporter:__init(model, host)
 end
 
 function Reporter:setProperties(...)
-    local totalEpochs, batchSize, epochSize, description = setPropertiesCheck()
+    local totalEpochs, batchSize, epochSize, description = setPropertiesCheck(...)
     self.properties.nb_epoch = totalEpochs or self.properties.nb_epoch
     self.properties.batch_size = batchSize or self.properties.batch_size
     self.properties.nb_sample = epochSize or self.properties.nb_sample
@@ -35,6 +35,8 @@ function Reporter:trainBeginIfNeeded()
     if not self.hasStarted then
         self:trainBegin(tostring(self.model), self.properties)
         self:epochBegin(self.currentEpoch, {})
+
+        self.hasStarted = true
     end
 end
 
@@ -46,7 +48,7 @@ function Reporter:endBatch(epoch, metrics)
         self.currentBatch = self.currentBatch + 1
     else
         self:epochEnd(self.currentEpoch)
-        self:epochBegin(epoch, {})
+        self:epochBegin(epoch)
         self.currentEpoch = epoch
         self.currentBatch = 1
     end
@@ -58,12 +60,15 @@ end
 
 function Reporter:endEpoch(epoch, metrics)
     metrics = metrics or {}
-    self.latestResults = self.latestResults or {}
+    local epochResults = {}
+    for k, v in pairs(self.latestResults or {}) do
+        epochResults[k] = v
+    end
 
     for key, val in pairs(metrics) do
-        self.latestResults['val_' .. key] = val
+        epochResults['val_' .. key] = val
     end
-    self:epochEnd(epoch, self.latestResults)
+    self:epochEnd(epoch, epochResults)
 end
 
 function Reporter:endExperiment()

@@ -11,7 +11,7 @@ else
 end
 local StochasticGradientCallback = torch.class('missinglink.StochasticGradientCallback', 'missinglink.BaseCallback')
 local setPropertiesCheck = require 'argcheck'{
-    {name='description', type='string', default=nil},
+    {name='description', type='string', default=nil, opt=true},
 }
 
 function StochasticGradientCallback:__init(trainer, host)
@@ -21,7 +21,7 @@ function StochasticGradientCallback:__init(trainer, host)
 end
 
 function StochasticGradientCallback:setProperties(...)
-    local description = setPropertiesCheck()
+    local description = setPropertiesCheck(...)
     self.properties.description = description or self.properties.description
 end
 
