@@ -10,7 +10,7 @@ local function newClient()
     local params = {
         mode = 'client',
         protocol = 'tlsv1_2',
-        cafile = script_path() .. '../../cacert.pem'
+        cafile = script_path() .. '../../cacert.lua'
     }
 
     local client = require('httpclient').new()
