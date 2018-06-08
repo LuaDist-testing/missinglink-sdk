@@ -5,7 +5,7 @@ missinglink = {}
 
 -- Load classes
 require ('./callback/torch_sg_callback')
-require ('./callback/torch_dp_callback')
+--require ('./callback/torch_dp_callback')
 require ('./callback/torch_reporter')
 require ('./callback/torchnet_callback')
 

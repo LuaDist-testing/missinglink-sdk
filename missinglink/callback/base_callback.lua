@@ -1,9 +1,12 @@
 missinglink = missinglink or {}
 local getDispatch = require './dispatchers/missinglink'
 local BaseCallback = torch.class('missinglink.BaseCallback')
-local DISPATCH_INTERVAl = 5
-local MAX_BATCHES_PER_EPOCH = 1000
 local SEND_EPOCH_CANDIDATES = false
+missinglink.DISPATCH_INTERVAl = 5
+missinglink.MAX_BATCHES_PER_EPOCH = 1000
+local prevSocket = socket
+local gettime = require('socket').gettime
+socket = prevSocket
 
 local function updateTable(params, kwargs)
     kwargs = kwargs or {}
@@ -38,8 +41,9 @@ function BaseCallback:__init(host)
     self.dispatch = getDispatch(missinglink.ownerID, missinglink.projectToken, host)
     self.batches_queue = {}
     self.points_candidate_indices = {}
-    self.iteration = 1
+    self.iteration = 0
     self.ts_start = 0
+    self.epochAddition = 0
     if SEND_EPOCH_CANDIDATES then
         self.epoch_candidate_indices = {}
     end
@@ -74,13 +78,13 @@ function BaseCallback:batchCommand(event, data, flush)
     end
 
     if #self.batches_queue == 1 then
-        self.ts_start = isoToSeconds(getIso())  -- timestamp is in 3rd index
+        self.ts_start = gettime()  -- timestamp is in 3rd index
     end
 
-    local ts_end = isoToSeconds(getIso())
+    local ts_end = gettime()
     local queue_duration = ts_end - self.ts_start
 
-    if queue_duration > DISPATCH_INTERVAl or flush then
+    if queue_duration >= missinglink.DISPATCH_INTERVAl or flush then
         self.dispatch(self.batches_queue)
         self.batches_queue = {}
     end
@@ -88,13 +92,13 @@ end
 
 function BaseCallback:trainBegin(model, params, kwargs)
     params = params or {}
-    self.iteration = 0
+    self.iteration = 1
     local data = {
         ['params'] = params,
         ['model'] = model
     }
     updateTable(data, kwargs)
-    self:batchCommand('TRAIN_BEGIN', data)
+    self:batchCommand('TRAIN_BEGIN', data, true)
 end
 
 function BaseCallback:trainEnd(kwargs)
@@ -104,36 +108,28 @@ function BaseCallback:trainEnd(kwargs)
 end
 
 function BaseCallback:epochBegin(epoch, params, kwargs)
-    --[[params = params or {}
-    local data = {
-        ['epoch'] = epoch,
-        ['params'] = params
-    }
-    updateTable(data, kwargs)
-    self:batchCommand('EPOCH_BEGIN', data)]]--
+    -- TODO: Make sure everyone calls epochBegin
+    if epoch == 0 then
+            self.epochAddition = 1
+    end
 end
 
 function BaseCallback:epochEnd(epoch, results, params, kwargs)
-    --[[results = results or {}
+    results = results or {}
     params = params or {}
-    local data = {
-        ['epoch'] = epoch,
-        ['params'] = params,
-        ['results'] = results
-    }
-    updateTable(data, kwargs)
-    self:batchCommand('EPOCH_END', data)]]--
+
+    if #results > 0 then
+        local data = {
+            ['epoch'] = epoch + self.epochAddition,
+            ['params'] = params,
+            ['results'] = results
+        }
+        updateTable(data, kwargs)
+        self:batchCommand('EPOCH_END', data, data.epoch == 1)
+    end
 end
 
-function BaseCallback:batchBegin(batch, epoch, kwargs)
-    --[[local data = {
-        ['batch'] = batch,
-        ['epoch'] = epoch,
-        ['iteration'] = self.iteration
-    }
-    updateTable(data, kwargs)
-    self:batchCommand('BATCH_BEGIN', data)]]--
-end
+function BaseCallback:batchBegin(batch, epoch, kwargs) end
 
 function BaseCallback:batchEnd(batch, epoch, metricData, kwargs)
     local data = {
@@ -145,7 +141,7 @@ function BaseCallback:batchEnd(batch, epoch, metricData, kwargs)
     local send = false
 
     -- Filter batch
-    if self.iteration < MAX_BATCHES_PER_EPOCH then
+    if self.iteration < missinglink.MAX_BATCHES_PER_EPOCH then
         if SEND_EPOCH_CANDIDATES then
             data['epoch_candidate'] = batch
         end
@@ -154,18 +150,18 @@ function BaseCallback:batchEnd(batch, epoch, metricData, kwargs)
     else
         -- Conserve initial location
         local points_candidate = math.random(1, self.iteration - 1)
-        if points_candidate < MAX_BATCHES_PER_EPOCH then
+        if points_candidate < missinglink.MAX_BATCHES_PER_EPOCH then
             data['points_candidate'] = points_candidate
             send = true
         end
 
         if SEND_EPOCH_CANDIDATES then
-            if batch < MAX_BATCHES_PER_EPOCH then
+            if batch < missinglink.MAX_BATCHES_PER_EPOCH then
                 data['epoch_candidate'] = batch
                 send = true
             else
                 local epoch_candidate = math.random(0, batch - 1)
-                if epoch_candidate < MAX_BATCHES_PER_EPOCH then
+                if epoch_candidate < missinglink.MAX_BATCHES_PER_EPOCH then
                     data['epoch_candidate'] = epoch_candidate
                     send = true
                 end
