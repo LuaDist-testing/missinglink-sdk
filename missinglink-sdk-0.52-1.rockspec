@@ -1,15 +1,15 @@
 -- This file was automatically generated for the LuaDist project.
 
 package = "missinglink-sdk"
-version = "0.51-1"
+version = "0.52-1"
 -- LuaDist source
 source = {
-  tag = "0.51-1",
+  tag = "0.52-1",
   url = "git://github.com/LuaDist-testing/missinglink-sdk.git"
 }
 -- Original source
 -- source = {
---    url = "https://storage.googleapis.com/missinglinkai/luarocks/missinglink-sdk-0.51.tar.gz"
+--    url = "https://storage.googleapis.com/missinglinkai/luarocks/missinglink-sdk-0.52.tar.gz"
 -- }
 description = {
    summary = "SDK for streaming realtime metrics to https://missinglink.ai",
