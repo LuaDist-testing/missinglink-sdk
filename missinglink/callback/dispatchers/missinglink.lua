@@ -57,8 +57,15 @@ local function getMissinglinkDispatcher(ownerId, projectToken, host)
         local res = postJson("/callback/step/begin", params)
 
         if res.err or res.code >= 400 then
-            local _, _, error_str = res.status_line:match('([^ ]+) ([^ ]+) ([^\n]+)')
-            local bad_request = error_str or tostring(res.code)
+            local error_str
+            if res.status_line then
+                local _, _, e = res.status_line:match('([^ ]+) ([^ ]+) ([^\n]+)')
+                error_str = e
+                if not error_str then
+                    error_str = tostring(res.code)
+                end
+            end
+            local bad_request = error_str or tostring(res.err)
             error(string.format('HTTP Error (%s): %s', bad_request, res.body))
         end
 
