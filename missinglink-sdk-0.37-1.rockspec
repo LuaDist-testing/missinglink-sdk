@@ -1,15 +1,15 @@
 -- This file was automatically generated for the LuaDist project.
 
 package = "missinglink-sdk"
-version = "0.36-1"
+version = "0.37-1"
 -- LuaDist source
 source = {
-  tag = "0.36-1",
+  tag = "0.37-1",
   url = "git://github.com/LuaDist-testing/missinglink-sdk.git"
 }
 -- Original source
 -- source = {
---    url = "https://storage.googleapis.com/missinglinkai/luarocks/missinglink-sdk-0.36.tar.gz"
+--    url = "https://storage.googleapis.com/missinglinkai/luarocks/missinglink-sdk-0.37.tar.gz"
 -- }
 description = {
    summary = "SDK for streaming realtime metrics to https://missinglink.ai",
@@ -23,16 +23,6 @@ dependencies = {
 }
 build = {
    type = "none",
-   --modules = {
-   --  missinglink = "missinglink/init.lua",
-   --  ["missinglink.callback.base_callback"] = "missinglink/callback/base_callback.lua",
-   --  ["missinglink.callback.callback_wrap"] = "missinglink/callback/callback_wrap.lua",
-   --  ["missinglink.callback.dispatchers.missinglink"] = "missinglink/callback/dispatchers/missinglink.lua",
-   --  ["missinglink.callback.torch_dp_callback"] = "missinglink/callback/torch_dp_callback.lua",
-   --  ["missinglink.callback.torch_reporter"] = "missinglink/callback/torch_reporter.lua",
-   --  ["missinglink.callback.torch_sg_callback"] = "missinglink/callback/torch_sg_callback.lua",
-   --  ["missinglink.callback.torchnet_callback"] = "missinglink/callback/torchnet_callback.lua",
-   --},
    install = {
       lua = {
         ["missinglink.init"] = "missinglink/init.lua",
